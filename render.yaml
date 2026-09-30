@@ -32,7 +32,4 @@ services:
       - key: NODE_OPTIONS
         value: "--max-old-space-size=400"
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          name: pulse-api
-          type: web
-          envVarKey: RENDER_EXTERNAL_URL
+        value: https://pulse-api-vqp8.onrender.com
