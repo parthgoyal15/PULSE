@@ -42,6 +42,28 @@ def _wa(dest: str, src: str, med: str, qty: int, cost: int, days: int, urgency: 
 def demo_transfers() -> list[dict]:
     return [
         {
+            "id": "TXF_MH_001",
+            "from_district": "Nashik", "to_district": "Raigad",
+            "from_state": "Maharashtra", "to_state": "Maharashtra",
+            "medicine": "ORS", "quantity": 2400,
+            "urgency": "CRITICAL", "deadline_days": 3, "estimated_cost_inr": 18400,
+            "justification": "Raigad dengue + diarrhea surge; Nashik PHCs hold surplus ORS above 14-day cover.",
+            "autonomy_level": "ESCALATE", "status": "pending",
+            "whatsapp_language": "mr",
+            "whatsapp_text": _wa("Raigad", "Nashik", "ORS", 2400, 18400, 3, "CRITICAL", "mr"),
+        },
+        {
+            "id": "TXF_MH_002",
+            "from_district": "Nashik", "to_district": "Raigad",
+            "from_state": "Maharashtra", "to_state": "Maharashtra",
+            "medicine": "IronTablets", "quantity": 500,
+            "urgency": "CRITICAL", "deadline_days": 3, "estimated_cost_inr": 4000,
+            "justification": "Multiple Raigad PHCs are below 5-day Iron tablet supply under outbreak load.",
+            "autonomy_level": "APPROVE_REQUIRED", "status": "pending",
+            "whatsapp_language": "mr",
+            "whatsapp_text": _wa("Raigad", "Nashik", "IronTablets", 500, 4000, 3, "CRITICAL", "mr"),
+        },
+        {
             "id": "TXF_OD_001",
             "from_district": "Cuttack", "to_district": "Puri",
             "from_state": "Odisha", "to_state": "Odisha",
@@ -135,6 +157,23 @@ def demo_transfers() -> list[dict]:
 def demo_alerts() -> list[dict]:
     return [
         {
+            "id": "AL_MH_001", "type": "sentinel", "state": "Maharashtra", "district": "Raigad",
+            "risk_score": 92, "risk_level": "CRITICAL",
+            "message": "Dengue and diarrhea case counts far above IDSP baseline. Iron tablets critically low at Mahad and Poladpur.",
+            "timestamp": _ts(8), "ai_source": "mock",
+        },
+        {
+            "id": "AL_MH_002", "type": "coordinator", "state": "Maharashtra", "district": "Raigad",
+            "transfer_count": 2,
+            "message": "Intra-state plan: Nashik surplus covers Raigad ORS and Iron tablets within 3 days.",
+            "timestamp": _ts(7), "ai_source": "mock",
+        },
+        {
+            "id": "AL_MH_003", "type": "pipeline", "state": "Maharashtra",
+            "message": "Demo seed loaded for Maharashtra. Click Simulate Outbreak to re-score Raigad with live Gemini.",
+            "timestamp": _ts(6), "ai_source": "mock",
+        },
+        {
             "id": "AL_OD_001", "type": "sentinel", "state": "Odisha", "district": "Puri",
             "risk_score": 88, "risk_level": "CRITICAL",
             "message": "Post-flood diarrheal searches +310% vs baseline. PHC Konark has a 2-day IVFluids supply.",
@@ -197,8 +236,113 @@ def _transfer_sig(row: dict) -> tuple:
     return (row.get("from_district"), row.get("to_district"), row.get("medicine"), row.get("status"))
 
 
+def demo_risk_scores() -> dict[str, dict]:
+    """District scores so a cold Render boot still shows a full map, not zeros."""
+    def row(**kwargs):
+        kwargs.setdefault("ai_source", "mock")
+        kwargs.setdefault("ai_model", None)
+        return kwargs
+
+    return {
+        "Raigad": row(
+            district="Raigad", state="Maharashtra", risk_score=92, risk_level="CRITICAL",
+            days_to_surge=3, key_medicines_at_risk=["IronTablets", "IVFluids"],
+            primary_driver="Rapid surge in dengue and diarrhea cases coupled with critical Iron and IV fluid stock shortages.",
+            reasoning="IDSP-style case counts exceed baselines across dengue and diarrhea. Several Raigad PHCs are below 5-day Iron tablet cover.",
+            recommended_action="Approve Nashik → Raigad ORS and Iron tablet transfers, then deploy vector-control teams.",
+        ),
+        "Nashik": row(
+            district="Nashik", state="Maharashtra", risk_score=18, risk_level="LOW",
+            days_to_surge=21, key_medicines_at_risk=[],
+            primary_driver="Surplus ORS and Iron tablet buffer; caseload within baseline.",
+            reasoning="Stock days-of-supply remain above 14 days across sample PHCs. Safe donor district for intra-state moves.",
+            recommended_action="Hold as surplus donor for Raigad.",
+        ),
+        "Pune": row(
+            district="Pune", state="Maharashtra", risk_score=42, risk_level="MEDIUM",
+            days_to_surge=12, key_medicines_at_risk=[],
+            primary_driver="Moderate fever OPD; stocks adequate.",
+            reasoning="Signals are elevated but not at outbreak thresholds. No transfer required.",
+            recommended_action="Monitor weekly IDSP-style counts.",
+        ),
+        "Thane": row(
+            district="Thane", state="Maharashtra", risk_score=48, risk_level="MEDIUM",
+            days_to_surge=11, key_medicines_at_risk=["IVFluids"],
+            primary_driver="Coastal fever corridor; IV fluids tightening at Murbad.",
+            reasoning="Medium risk from seasonal fever. Not yet a donor or a priority receiver.",
+            recommended_action="Watch IV fluid days-of-cover.",
+        ),
+        "Puri": row(
+            district="Puri", state="Odisha", risk_score=88, risk_level="CRITICAL",
+            days_to_surge=4, key_medicines_at_risk=["ORS", "IVFluids"],
+            primary_driver="Post-flood diarrheal surge; PHC Konark has a 2-day IVFluids supply.",
+            reasoning="Flood-belt PHCs drew down ORS. Cuttack remains the intra-state surplus donor.",
+            recommended_action="Approve remaining Cuttack → Puri IV fluids transfer.",
+        ),
+        "Cuttack": row(
+            district="Cuttack", state="Odisha", risk_score=22, risk_level="LOW",
+            days_to_surge=18, key_medicines_at_risk=[],
+            primary_driver="Surplus ORS and IV fluids relative to footfall.",
+            reasoning="Safe donor for Puri and Balasore flood-corridor PHCs.",
+            recommended_action="Keep as Odisha surplus hub.",
+        ),
+        "Khordha": row(
+            district="Khordha", state="Odisha", risk_score=36, risk_level="MEDIUM",
+            days_to_surge=14, key_medicines_at_risk=[],
+            primary_driver="Paracetamol buffer available for Puri fever OPD.",
+            reasoning="Not in outbreak. Can spare Paracetamol without dipping below 10-day cover.",
+            recommended_action="Optional top-up to Puri Sadar.",
+        ),
+        "Balasore": row(
+            district="Balasore", state="Odisha", risk_score=71, risk_level="HIGH",
+            days_to_surge=6, key_medicines_at_risk=["ORS"],
+            primary_driver="Flood corridor still wet; ORS offtake 1.8× the 14-day mean.",
+            reasoning="High but secondary to Puri. Cuttack can cover an ORS tranche within 5 days.",
+            recommended_action="Keep the Cuttack → Balasore ORS transfer on the board.",
+        ),
+        "Barmer": row(
+            district="Barmer", state="Rajasthan", risk_score=86, risk_level="CRITICAL",
+            days_to_surge=2, key_medicines_at_risk=["Artemisinin", "ORS"],
+            primary_driver="Malaria searches +280% vs baseline; PHC Siwana has a 2-day Artemisinin supply.",
+            reasoning="Vector + heat signals together. Jodhpur is the intra-state surplus donor.",
+            recommended_action="Approve Jodhpur → Barmer Artemisinin first.",
+        ),
+        "Jodhpur": row(
+            district="Jodhpur", state="Rajasthan", risk_score=19, risk_level="LOW",
+            days_to_surge=20, key_medicines_at_risk=[],
+            primary_driver="Rural PHCs hold surplus Artemisinin, ORS, and IV fluids.",
+            reasoning="Safe donor for Barmer malaria-watch blocks.",
+            recommended_action="Hold as Rajasthan surplus hub.",
+        ),
+        "Jaipur": row(
+            district="Jaipur", state="Rajasthan", risk_score=34, risk_level="MEDIUM",
+            days_to_surge=13, key_medicines_at_risk=[],
+            primary_driver="Urban fever OPD stable; Paracetamol available for Udaipur top-up.",
+            reasoning="Not an outbreak district. Can spare a medium Paracetamol move.",
+            recommended_action="Optional Jaipur → Udaipur fever-kit transfer.",
+        ),
+        "Udaipur": row(
+            district="Udaipur", state="Rajasthan", risk_score=58, risk_level="MEDIUM",
+            days_to_surge=8, key_medicines_at_risk=["Paracetamol"],
+            primary_driver="Malaria-watch fever OPD up in Girwa; Paracetamol cover slipping below 10 days.",
+            reasoning="Watch district, not yet critical. Weekend OPD could tighten stocks.",
+            recommended_action="Keep the Jaipur → Udaipur transfer pending.",
+        ),
+    }
+
+
+def demo_impact() -> dict:
+    return {
+        "stockout_days_prevented": 24,
+        "patients_served": 460,
+        "units_redistributed": 1430,
+        "warnings_issued": 6,
+        "leakage_flagged": 4,
+    }
+
+
 def ensure_demo_feed(state: dict) -> bool:
-    """Insert missing Odisha/Rajasthan demo rows. Returns True if state changed."""
+    """Insert missing demo rows so a cold boot still looks like a live ops board."""
     changed = False
     transfers = state.setdefault("transfers", [])
     known_ids = {row.get("id") for row in transfers}
@@ -218,5 +362,18 @@ def ensure_demo_feed(state: dict) -> bool:
             continue
         alerts.append(dict(row))
         known_alert_ids.add(row.get("id"))
+        changed = True
+
+    scores = state.setdefault("risk_scores", {})
+    for district, row in demo_risk_scores().items():
+        existing = scores.get(district)
+        if existing and existing.get("risk_score"):
+            continue
+        scores[district] = dict(row)
+        changed = True
+
+    impact = state.setdefault("impact", {})
+    if not int(impact.get("units_redistributed") or 0):
+        impact.update(demo_impact())
         changed = True
     return changed

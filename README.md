@@ -87,7 +87,7 @@ One-click Render (Hobby / Free instances):
 3. When asked for `GEMINI_API_KEY`, paste the same value as local `pulse/backend/.env`. Do not commit the key.
 4. Wait until both services are **Live**. Open the **pulse-web** URL — that is the public dashboard.
 
-Render free instances sleep after 15 minutes idle. The first load can take about a minute. **Simulate Outbreak** can take up to a minute (live Gemini).
+Judges do not need to click Simulate. A cold start still seeds risk scores, transfers, and alerts. Hobby instances sleep after 15 minutes idle (~1 minute wake). To keep them warm, add GitHub Actions secrets `PULSE_WEB_URL` and `PULSE_API_URL` so the keep-awake workflow pings both every 10 minutes. Simulate Outbreak is optional (live Gemini re-score).
 
 ---
 

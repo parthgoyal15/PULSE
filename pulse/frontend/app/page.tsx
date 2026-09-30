@@ -73,10 +73,25 @@ export default function Dashboard() {
       setAlerts(alertData.alerts || [])
       setImpact(impactData)
       setPulseStatus(statusData)
-    } catch { }
+      return true
+    } catch {
+      return false
+    }
   }, [activeState])
 
-  useEffect(() => { fetchAll(); const t = setInterval(fetchAll, 15000); return () => clearInterval(t) }, [fetchAll])
+  useEffect(() => {
+    let cancelled = false
+    const boot = async () => {
+      for (let i = 0; i < 24 && !cancelled; i++) {
+        const ok = await fetchAll()
+        if (ok) break
+        await new Promise(r => setTimeout(r, 5000))
+      }
+    }
+    boot()
+    const t = setInterval(fetchAll, 15000)
+    return () => { cancelled = true; clearInterval(t) }
+  }, [fetchAll])
 
   const handleDistrictClick = async (district: string) => {
     setSelectedDistrict(district)

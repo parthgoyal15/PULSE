@@ -1,0 +1,35 @@
+name: Keep Render awake
+
+# Pings both services every 10 minutes so Hobby instances do not sleep
+# before judges open the submission link.
+#
+# GitHub → this repo → Settings → Secrets and variables → Actions:
+#   PULSE_WEB_URL  = https://pulse-web-xxxx.onrender.com
+#   PULSE_API_URL  = https://pulse-api-xxxx.onrender.com
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API and dashboard
+        env:
+          WEB: ${{ secrets.PULSE_WEB_URL }}
+          API: ${{ secrets.PULSE_API_URL }}
+        run: |
+          if [ -z "$WEB" ] && [ -z "$API" ]; then
+            echo "No PULSE_WEB_URL / PULSE_API_URL secrets yet — skip."
+            exit 0
+          fi
+          if [ -n "$API" ]; then
+            echo "Pinging API"
+            curl -fsS --max-time 90 "${API%/}/status" >/dev/null
+          fi
+          if [ -n "$WEB" ]; then
+            echo "Pinging web"
+            curl -fsS --max-time 90 "$WEB" >/dev/null
+          fi

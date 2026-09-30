@@ -92,6 +92,7 @@ def _restore():
     )
     _clean_ai_errors()
     ensure_demo_feed(_state)
+    _refresh_operational_state_scores()
     _persist()
 
 
