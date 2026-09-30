@@ -24,8 +24,6 @@ PHC supply chains cannot see stock, footfall, and outbreak risk in one place. Di
 | **Copilot** | Answers CMO questions from live board state. Transfer cards can project **if delayed 48 hours**. |
 | **Leakage** | Flags PHCs where dispensed volume is far above expected use from footfall. |
 
-The dashboard is national → state → district. A second page covers reports, 2019 backtesting, leakage audits, and a WhatsApp preview.
-
 ### Demo stories
 
 | State | Outbreak | Surplus donor | CMO language |
@@ -35,6 +33,57 @@ The dashboard is national → state → district. A second page covers reports, 
 | Rajasthan | Barmer malaria / heat | Jodhpur | Hindi |
 
 Other states on the national map are markers only.
+
+---
+
+## AI
+
+PULSE uses **Google Gemini** (`google-genai`) for every reasoning and writing step. Lite models are tried first (`gemini-2.5-flash-lite`, `gemini-flash-lite-latest`), then `gemini-2.5-flash` and `gemini-3.8-flash` if needed.
+
+Every Gemini response is tagged **`ai_source: gemini`** or **`ai_source: mock`**. The dashboard shows that label — it never silently fakes Google AI.
+
+| Capability | What Gemini does |
+|---|---|
+| Sentinel | District risk score, driver, days-to-surge, recommended action |
+| Coordinator | Intra-state transfer plan (medicine, quantity, urgency, cost, justification) |
+| Reporter | CMO WhatsApp in Marathi / Odia / Hindi + English; weekly, monthly, and post-incident briefs |
+| Copilot | Answers CMO questions using current risk, transfers, and PHC stock only |
+| Delay analysis | CMO brief for “if this transfer waits 48 hours” (stock-out numbers are calculated in code; Gemini writes the brief) |
+| Translate | English ↔ Hindi (Devanagari) for Risk / Transfers / Alerts |
+
+**Not Gemini:** map tiles (OpenStreetMap), leakage flags (rule-based dispensed vs footfall), and read-aloud (device speech synthesis).
+
+---
+
+## Features
+
+### Operations dashboard
+
+- National → state → district **Leaflet map** with risk colouring
+- **KPI strip:** stock-out days prevented, patients served, units redistributed, warnings, leakage flagged
+- **Risk panel:** score, days-to-surge, medicines at risk, reasoning, recommended action
+- **Transfers:** Approve (moves mock stock), Modify quantity, Escalate to state
+- **If delayed 48h:** which destination PHCs hit zero stock and uncovered visits
+- **Alert feed** from Sentinel / Coordinator / Approve
+- **CMO Copilot** with suggested questions, grounded in live board state
+- **EN / हिं** view language plus speaker (read-aloud)
+- **Run Pipeline** (re-score + re-plan) and **Simulate Outbreak** (live Gemini re-score for the active state)
+- Graduated autonomy labels: AUTO / APPROVE REQUIRED / ESCALATE by quantity
+
+### Reports & intelligence (`/reports`)
+
+- Weekly district brief and monthly state overview
+- Post-incident analysis
+- 2019 Raigad dengue **backtesting** narrative (early-warning story)
+- **Leakage detection** with schedule-audit and notify-officer
+- **WhatsApp demo** (phone mock of CMO Approve / Modify / Escalate)
+
+### Supply chain behaviour
+
+- Prefers **intra-state** moves; inter-state only if the destination state has no surplus district
+- Approve drains donor PHCs (highest stock first) and tops up receiver PHCs (lowest stock first)
+- State-language WhatsApp draft on each transfer (Marathi, Odia, or Hindi) plus an English block
+- Demo corridors: Maharashtra (Raigad–Nashik), Odisha (Puri–Cuttack), Rajasthan (Barmer–Jodhpur)
 
 ---
 
@@ -73,7 +122,7 @@ PHC stock  ──┘                              │
 |---|---|
 | UI | Next.js, TypeScript, Leaflet |
 | API | Python, Flask, SQLite |
-| AI | Google Gemini |
+| AI | Google Gemini (Flash Lite → Flash fallbacks); labelled mock if quota/key is missing |
 | Hosting | Render (`pulse-web` + `pulse-api`) |
 
 ---
