@@ -16,6 +16,21 @@ A district should not find out about an ORS stock-out after patients are already
 
 India’s PHC network is large, last-mile, and WhatsApp-native. Stock, rainfall, and caseload still live in different places. PULSE puts them on one board a district CMO can act on in a minute.
 
+## Impact at a glance
+
+The live board is a **working prototype** with sample PHCs. The numbers below are either **on the demo today** or a **modelled 2019 counterfactual** you can open under Reports → Backtesting — not a claim that PULSE ran in 2019.
+
+| | Without a fused board | With PULSE (this demo / model) |
+|---|---|---|
+| **When the CMO finds out** | After the PHC is already dry | Risk 92 with **3 days to surge** on Raigad; 48h delay names which PHCs hit zero |
+| **Where the drugs are** | Next district may hold surplus unseen | Intra-state move: Nashik / Cuttack / Jodhpur → the hotspot |
+| **Live demo KPIs** | — | **1,430** units on the plan · **24** stock-out days avoided in-session · **460** patient visits covered · **4** leakage flags |
+| **2019 Raigad model** | **9-day** ORS stock-out · **14,200** patients affected · **₹1.85 Cr** estimated cost of inaction | **16-day** modelled lead time · pre-position **₹2.15 lakh** · **~86×** vs cost of inaction |
+
+Three operational states in the demo cover on the order of **~220 million** people and **~5,400** PHCs in the national markers (Maharashtra, Odisha, Rajasthan). The map shows a **sample** of facilities so a judge can finish the loop in a minute — Approve still **decrements real mock stock** on those PHCs.
+
+Leakage is the other high-stakes path: public medicines billed far above footfall. One tap schedules an audit or notifies the block officer. Diversion is not a dashboard colour; it is a **persistable action**.
+
 ---
 
 ## 60 seconds on the live board
