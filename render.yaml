@@ -29,6 +29,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20.18.0"
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=400"
       - key: NEXT_PUBLIC_API_URL
         fromService:
           name: pulse-api

@@ -76,14 +76,18 @@ The UI polls every 15 seconds. Transfers and stock survive a backend restart.
 
 ### Live demo (cloud)
 
-The public dashboard is the **frontend** URL. The API is a separate service.
+Public GitHub: [github.com/parthgoyal15/PULSE](https://github.com/parthgoyal15/PULSE)
 
-1. Push this repo to GitHub (public).
-2. On [Render](https://render.com), **New → Blueprint** and select this repo (`render.yaml`).
-3. When prompted, paste `GEMINI_API_KEY` (same key as `pulse/backend/.env` locally). Do not commit the key.
-4. After both services are live, open the **pulse-web** URL.
+One-click Render (Hobby / Free instances):
 
-Render free instances sleep after idle time. The first load can take 30–60 seconds. **Simulate Outbreak** can take up to a minute (live Gemini) — the service timeout is 180s.
+[Deploy to Render](https://render.com/deploy?repo=https://github.com/parthgoyal15/PULSE)
+
+1. Sign in to Render with GitHub (Hobby is free).
+2. Apply the blueprint from this repo. It creates **pulse-api** and **pulse-web**.
+3. When asked for `GEMINI_API_KEY`, paste the same value as local `pulse/backend/.env`. Do not commit the key.
+4. Wait until both services are **Live**. Open the **pulse-web** URL — that is the public dashboard.
+
+Render free instances sleep after 15 minutes idle. The first load can take about a minute. **Simulate Outbreak** can take up to a minute (live Gemini).
 
 ---
 
