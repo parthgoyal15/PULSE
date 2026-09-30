@@ -1,169 +1,32 @@
 # PULSE
 
-**Predictive Unified Health Surge Engine** — a PHC health-intelligence platform for India’s Primary Health Centre network.
+**Predictive Unified Health Surge Engine** — health-intelligence for India’s Primary Health Centre (PHC) network.
 
-PULSE was built for the **Code for Community** hackathon, **Track 03: Smart Health & Supply Chain Resilience**. It is a working demo, not a production system.
+Built for **Code for Community**, **Track 03: Smart Health & Supply Chain Resilience**.
 
-The idea: detect a dengue or monsoon surge *before* medicines run out, then move surplus stock (ORS, IV fluids, etc.) from a neighbouring district and alert the district CMO on WhatsApp.
+**Live demo:** [https://pulse-web-ahao.onrender.com](https://pulse-web-ahao.onrender.com)
 
-The live demo stories:
-
-- **Maharashtra:** Raigad goes critical (dengue), Nashik has surplus, PULSE proposes the transfer. CMO copy is drafted in **Marathi**.
-- **Odisha:** Puri goes critical (post-flood diarrhea), Cuttack has surplus. CMO copy is drafted in **Odia**.
-
-Both states share the same Sentinel + Coordinator model. Approve on the dashboard **moves mock stock** and persists in SQLite.
+Detect a dengue, flood, or malaria surge *before* medicines run out. Move surplus stock from a neighbouring district. Draft the district CMO alert on WhatsApp in the state’s language. Approve on the dashboard **moves mock stock**.
 
 ---
 
 ## Problem
 
-Public healthcare supply chains cannot see medicine stocks, patient footfall, and outbreak risk in one place. Districts often discover a stock-out after patients are already turned away. Neighbouring PHCs may be sitting on surplus of the same drugs.
+PHC supply chains cannot see stock, footfall, and outbreak risk in one place. Districts often learn of a stock-out after patients are turned away, while a neighbouring district is sitting on surplus of the same drugs.
 
-## What PULSE does
+## What it does
 
-1. **Sentinel** fuses weather, Google Trends, IDSP-style case counts, and PHC stock into a district risk score. Uses Gemini when `GEMINI_API_KEY` is set; otherwise a **labelled** mock (`ai_source: mock`).
-2. **Coordinator** turns those scores into a redistribution plan (prefers intra-state: Nashik→Raigad, Cuttack→Puri).
-3. **Reporter** drafts Marathi/Odia WhatsApp alerts plus weekly / post-incident briefs.
-4. **Leakage** flags PHCs where reported dispensed volume is far above expected consumption from footfall. Audit / notify buttons persist.
-
-The dashboard shows a national → state → district map, KPIs, risk reasoning, transfer cards, and an agent alert feed. A second page covers reports, 2019 backtesting, leakage, and a WhatsApp phone mock.
-
----
-
-## Quick start
-
-You need **two terminals**. Backend on port **8000**, frontend on port **3000**.
-
-**Prerequisites:** Python 3.11+ (3.11–3.13 recommended), Node.js 20+, npm.
-
-### 1. Backend
-
-```bash
-cd pulse/backend
-python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env               # optional — works without keys
-python3 main.py
-```
-
-You should see: `PULSE Backend starting on http://localhost:8000`
-
-Check it: open [http://localhost:8000](http://localhost:8000) — JSON like `{"service":"PULSE","status":"online",...}`.
-
-### 2. Frontend
-
-```bash
-cd pulse/frontend
-npm install
-cp .env.example .env.local         # already set to http://localhost:8000
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-Keys are optional for a local demo. Without `GEMINI_API_KEY` the dashboard banner says **Google AI is offline** and every score is labelled MOCK. For judging, put a real key in `pulse/backend/.env`. Set `ALLOW_MOCK_AGENTS=false` if you want the API to return 503 instead of mocks.
-
-### Demo walkthrough
-
-1. Dashboard opens on Maharashtra. Header banner shows whether Gemini is live.
-2. Click **Simulate Outbreak** — Raigad goes critical; Nashik → Raigad transfers appear; CMO copy is in Marathi + English.
-3. Click **Approve** — donor PHC stock decrements, KPIs update, the card stays approved after refresh (SQLite).
-4. National view → click **Odisha** → **Simulate Outbreak** — Puri flood/diarrhea, Cuttack surplus, Odia CMO copy.
-5. **Reports** (`/reports`) for briefs (labelled Gemini vs mock), 2019 backtesting, leakage (audit/notify persist), WhatsApp preview.
-
-The UI polls every 15 seconds. Transfers and stock survive a backend restart.
-
-### Live demo (cloud)
-
-Public GitHub: [github.com/parthgoyal15/PULSE](https://github.com/parthgoyal15/PULSE)
-
-One-click Render (Hobby / Free instances):
-
-[Deploy to Render](https://render.com/deploy?repo=https://github.com/parthgoyal15/PULSE)
-
-1. Sign in to Render with GitHub (Hobby is free).
-2. Apply the blueprint from this repo. It creates **pulse-api** and **pulse-web**.
-3. When asked for `GEMINI_API_KEY`, paste the same value as local `pulse/backend/.env`. Do not commit the key.
-4. Wait until both services are **Live**. Open the **pulse-web** URL — that is the public dashboard.
-
-Judges do not need to click Simulate. A cold start still seeds risk scores, transfers, and alerts. Hobby instances sleep after 15 minutes idle (~1 minute wake). To keep them warm, add GitHub Actions secrets `PULSE_WEB_URL` and `PULSE_API_URL` so the keep-awake workflow pings both every 10 minutes. Simulate Outbreak is optional (live Gemini re-score).
-
----
-
-## Repository layout
-
-```
-CodeForCommunity/
-├── README.md                 ← you are here
-├── .claude/                  # local Claude Code permissions / curl checks
-└── pulse/
-    ├── backend/              # Flask API — http://localhost:8000
-    │   ├── main.py           # all HTTP routes + in-memory state
-    │   ├── agents/           # Sentinel, Coordinator, Reporter, Leakage
-    │   ├── signals/          # weather, Google Trends, IDSP
-    │   ├── data/             # mock PHCs + 2019 backtesting fixture
-    │   ├── whatsapp/         # Cloud API client (demo mode without creds)
-    │   ├── requirements.txt
-    │   └── .env.example
-    └── frontend/             # Next.js App Router — http://localhost:3000
-        ├── app/page.tsx      # ops dashboard
-        ├── app/reports/page.tsx
-        ├── components/       # map, risk, transfers, alerts, reports
-        └── lib/              # API client + TypeScript types
-```
-
----
-
-## Tech stack
-
-| State | Tools |
+| Agent | Role |
 |---|---|
-| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Leaflet |
-| Backend | Python, Flask 3, flask-cors, httpx, SQLite |
-| AI | Google Gemini (`gemini-3.8-flash`, with fallbacks) via `google-genai` |
-| Signals | Open-Meteo (live rainfall), pytrends (often rate-limited), IDSP-style demo counts |
-| Messaging | WhatsApp Cloud API when token + phone ID are set; otherwise console demo delivery |
+| **Sentinel** | Fuses weather, search trends, IDSP-style case counts, and PHC stock into a district risk score (Gemini when live; otherwise labelled mock). |
+| **Coordinator** | Turns scores into an intra-state redistribution plan (Nashik→Raigad, Cuttack→Puri, Jodhpur→Barmer). |
+| **Reporter** | Drafts Marathi / Odia / Hindi WhatsApp copy plus weekly and post-incident briefs. |
+| **Copilot** | Answers CMO questions from live board state. Transfer cards can project **if delayed 48 hours**. |
+| **Leakage** | Flags PHCs where dispensed volume is far above expected use from footfall. |
 
-### Environment variables
+The dashboard is national → state → district. A second page covers reports, 2019 backtesting, leakage audits, and a WhatsApp preview.
 
-**Backend** (`pulse/backend/.env`) — copy from `.env.example`:
-
-| Variable | Required? | Purpose |
-|---|---|---|
-| `GEMINI_API_KEY` | For judging | Free key from [Google AI Studio](https://aistudio.google.com/apikey). Without it, agents return **labelled** mocks. |
-| `ALLOW_MOCK_AGENTS` | No | Default `true`. Set `false` to 503 instead of mocks. |
-| `WHATSAPP_TOKEN` | No | Meta WhatsApp Cloud API token |
-| `WHATSAPP_PHONE_ID` | No | WhatsApp phone number ID |
-| `WHATSAPP_VERIFY_TOKEN` | No | Webhook verify token (default `pulse_verify_token_2024`) |
-| `CMO_PHONE_MH` / `CMO_PHONE_OD` | No | E.164 numbers (no +) for live WhatsApp |
-
-**Frontend** (`pulse/frontend/.env.local`):
-
-```
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
----
-
-## Architecture
-
-```
-Open-Meteo ──┐
-Google Trends┤
-Mock IDSP ───┼──► Sentinel (Gemini) ──► district risk scores
-Mock stock ──┘                              │
-                                            ▼
-                                   Coordinator (Gemini)
-                                            │
-                          transfers + WhatsApp copy (Reporter)
-                                            │
-                     Flask API ◄────────────┘
-                            │
-                     Next.js dashboard (poll 15s)
-```
-
-**Operational states**
+### Demo stories
 
 | State | Outbreak | Surplus donor | CMO language |
 |---|---|---|---|
@@ -171,108 +34,69 @@ Mock stock ──┘                              │
 | Odisha | Puri flood / diarrhea | Cuttack | Odia |
 | Rajasthan | Barmer malaria / heat | Jodhpur | Hindi |
 
-Other Indian states are national markers only. Sample PHCs (not the full `phc_count`) are shown on the map. IDSP-style counts are demo baselines, not a live MoHFW feed.
+Other states on the national map are markers only.
 
 ---
 
-## Features
+## Try it (judges)
 
-### Dashboard (`/`)
+Open **[pulse-web-ahao.onrender.com](https://pulse-web-ahao.onrender.com)**. The board is already seeded — you do **not** need Simulate Outbreak.
 
-- National / state / district Leaflet map (OSM tiles)
-- KPI strip: stock-out days prevented, patients served, units redistributed, warnings, leakage flagged
-- Risk panel with score, Gemini vs mock label, days-to-surge, reasoning
-- Transfer cards — Approve moves stock, Escalate / Modify persist in SQLite
-- Agent alert feed
-- **Run Pipeline** → `POST /run/all?state=`
-- **Simulate Outbreak** → `POST /simulate/outbreak?state=Maharashtra` or `Odisha`
+1. Maharashtra map → **Raigad** (critical) → **Transfers** → Nashik → Raigad.
+2. **If delayed 48h** on a pending card, then **Approve** (stock and KPIs update).
+3. **CMO Copilot** — tap a suggested question.
+4. **Reports** → Leakage Detection and WhatsApp Demo.
+5. Switch state to Odisha or Rajasthan for the other corridors.
 
-### Reports (`/reports`)
+Gemini vs mock is labelled on the risk panel. EN / हिं toggles readable copy and read-aloud.
 
-| Tab | What you see |
-|---|---|
-| Weekly brief | Gemini (or canned) brief for a district |
-| Monthly overview | Same generator, scoped to a state |
-| Post-incident | After-action style report |
-| Backtesting | Scripted 2019 Raigad dengue story (16-day early warning, 86× ROI narrative) |
-| Leakage | PHCs where dispensed vs footfall looks anomalous (2 PHCs pre-flagged in mock data) |
-| WhatsApp demo | Phone mock of CMO approve / escalate flow |
+The first load after idle can take about a minute (free hosting). After that the dashboard is live.
 
 ---
 
-## API
+## Architecture
 
-Base URL: `http://localhost:8000`
-
-| Method | Path | Description |
-|---|---|---|
-| GET | `/` | Health check |
-| GET | `/status` | Gemini live, WhatsApp live, operational states |
-| GET | `/phcs` | Sample PHCs (`?district=` or `?state=`) |
-| GET | `/districts` | Districts + latest risk (`?state=`) |
-| GET | `/states` | National markers (`operational: true` for MH & Odisha) |
-| POST | `/run/all?simulated=&state=` | Sentinel + coordinator for a state (or all) |
-| POST | `/simulate/outbreak?state=` | Raigad dengue or Puri flood |
-| POST | `/transfers/<id>/approve` | Persist, move stock, bump KPIs |
-| POST | `/transfers/<id>/escalate` | Mark escalated |
-| POST | `/transfers/<id>/modify` | Body `{quantity, reason}` |
-| POST | `/leakage/<phc_id>/audit` | Schedule audit |
-| POST | `/leakage/<phc_id>/notify` | Notify block officer |
-| GET | `/risk/<district>` | Latest Sentinel score |
-| GET | `/transfers` | Current redistribution plan |
-| GET | `/alerts` | Last 20 agent alerts |
-| GET | `/impact` | KPI counters |
-| POST | `/run/sentinel?district=&simulated=` | Score one district |
-| POST | `/run/coordinator` | Plan transfers from existing scores |
-| POST | `/run/all?simulated=` | Sentinel all districts + coordinator |
-| POST | `/simulate/outbreak?state=` | Cinematic outbreak for that state |
-| GET | `/backtesting` | 2019 dengue fixture |
-| GET | `/leakage` | Leakage flags (`?district=` optional) |
-| GET | `/report/weekly/<district>` | Weekly brief |
-| GET | `/report/monthly/<state>` | Monthly overview |
-| GET | `/report/post-incident/<district>` | Post-incident report |
-| GET/POST | `/webhook/whatsapp` | Meta webhook verify + Approve / Escalate |
-
-Quick checks:
-
-```bash
-curl http://localhost:8000/status
-curl -X POST "http://localhost:8000/simulate/outbreak?state=Odisha"
-curl -X POST http://localhost:8000/transfers/TXF_001/approve
+```
+Open-Meteo ──┐
+Search trends┤
+IDSP-style ──┼──► Sentinel (Gemini) ──► district risk
+PHC stock  ──┘                              │
+                                            ▼
+                                   Coordinator (Gemini)
+                                            │
+                          transfers + vernacular WhatsApp
+                                            │
+                              Flask API  →  Next.js dashboard
 ```
 
----
-
-## Agents (backend)
-
-| Agent | File | Job |
-|---|---|---|
-| Sentinel | `pulse/backend/agents/sentinel.py` | Fuse weather + trends + IDSP + stock → risk JSON |
-| Coordinator | `pulse/backend/agents/coordinator.py` | Surplus (score &lt; 25) vs deficit (score &gt; 60) → transfer plan |
-| Reporter | `pulse/backend/agents/reporter.py` | WhatsApp template, weekly brief, post-incident copy |
-| Leakage | `pulse/backend/agents/leakage.py` | Dispensed vs expected from footfall |
-
-**Signals**
-
-- `signals/weather.py` — Open-Meteo 14-day rainfall vs a 120 mm monsoon baseline; falls back to numbers if the network fails
-- `signals/trends.py` — Marathi/English symptom keywords via pytrends; often mocked because of rate limits
-- `signals/idsp.py` — Hardcoded baseline vs outbreak case counts (not live IDSP)
+| Layer | Stack |
+|---|---|
+| UI | Next.js, TypeScript, Leaflet |
+| API | Python, Flask, SQLite |
+| AI | Google Gemini |
+| Hosting | Render (`pulse-web` + `pulse-api`) |
 
 ---
 
-## Current limitations
+## Scope of this demo
 
-Still a **hackathon prototype**:
+Illustrative PHC stock and IDSP-style counts — not a live HMIS or MoHFW feed. Sample PHCs are shown on the map, not every facility in `phc_count`. Approve is explicit (no background auto-execute timers). Backtesting is a 2019 Raigad narrative used to explain early warning, not a live model replay.
 
-- Sample PHCs, not a live HMIS feed. IDSP counts are labelled demo baselines.
-- National markers besides Maharashtra, Odisha, and Rajasthan do not run the pipeline.
-- Map is Leaflet/OSM, not Google Maps. No Vertex AutoML, BigQuery, or Firebase — persistence is SQLite.
-- “Graduated autonomy” timers (auto-execute in 1h / 4h) are not scheduled jobs; Approve is explicit.
-- Backtesting is a static 2019 narrative.
-- No auth, tests, Docker, or CI.
+Not affiliated with MoHFW, IDSP, or any state health department.
 
 ---
 
-## License / context
+## Run locally
 
-Built as a Code for Community hackathon submission. Not affiliated with MoHFW, IDSP, or any state health department. All PHC stock, footfall, and 2019 ROI figures are **illustrative mock data**.
+```bash
+# API — http://localhost:8000
+cd pulse/backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env    # optional GEMINI_API_KEY
+python3 main.py
+
+# UI — http://localhost:3000
+cd pulse/frontend
+npm install && npm run dev
+```
