@@ -1,151 +1,111 @@
+<div align="center">
+
+<img src="pulse/frontend/public/pulse-logo.svg" width="72" alt="PULSE logo" />
+
 # PULSE
 
-**Predictive Unified Health Surge Engine** — health-intelligence for India’s Primary Health Centre (PHC) network.
+**Predictive Unified Health Surge Engine**
 
-Built for **Code for Community**, **Track 03: Smart Health & Supply Chain Resilience**.
+PHC health intelligence for India — detect a surge, move surplus stock, alert the CMO.
 
-**Live demo:** [https://pulse-web-ahao.onrender.com](https://pulse-web-ahao.onrender.com)
+[Live demo](https://pulse-web-ahao.onrender.com) · [Code for Community · Track 03](https://github.com/parthgoyal15/PULSE) · Smart Health & Supply Chain Resilience
 
-Detect a dengue, flood, or malaria surge *before* medicines run out. Move surplus stock from a neighbouring district. Draft the district CMO alert on WhatsApp in the state’s language. Approve on the dashboard **moves mock stock**.
+</div>
+
+A district should not find out about an ORS stock-out after patients are already turned away. PULSE scores outbreak risk, proposes a neighbouring-district transfer, drafts WhatsApp in **Marathi / Odia / Hindi**, and **moves mock stock when you click Approve**.
 
 ---
 
-## Problem
+## 60 seconds on the live board
 
-PHC supply chains cannot see stock, footfall, and outbreak risk in one place. Districts often learn of a stock-out after patients are turned away, while a neighbouring district is sitting on surplus of the same drugs.
+Open **[pulse-web-ahao.onrender.com](https://pulse-web-ahao.onrender.com)** (first load after idle can take ~1 minute).
 
-## What it does
-
-| Agent | Role |
+| Step | What you see |
 |---|---|
-| **Sentinel** | Fuses weather, search trends, IDSP-style case counts, and PHC stock into a district risk score (Gemini when live; otherwise labelled mock). |
-| **Coordinator** | Turns scores into an intra-state redistribution plan (Nashik→Raigad, Cuttack→Puri, Jodhpur→Barmer). |
-| **Reporter** | Drafts Marathi / Odia / Hindi WhatsApp copy plus weekly and post-incident briefs. |
-| **Copilot** | Answers CMO questions from live board state. Transfer cards can project **if delayed 48 hours**. |
-| **Leakage** | Flags PHCs where dispensed volume is far above expected use from footfall. |
+| 1 | Maharashtra → **Raigad 92 CRITICAL** — dengue + Iron / IV cover collapsing |
+| 2 | **Transfers** → Nashik → Raigad. **If delayed 48h**, then **Approve** — KPIs and donor stock change |
+| 3 | **CMO Copilot** — ask which transfer to approve first (grounded in live state, not a generic chatbot) |
+| 4 | **Reports → Leakage** and **WhatsApp Demo**. Switch state for Odisha (Puri) or Rajasthan (Barmer) |
 
-### Demo stories
+You do **not** need Simulate Outbreak. Gemini vs mock is labelled on every score.
 
-| State | Outbreak | Surplus donor | CMO language |
+---
+
+## Why this is a supply-chain system, not a dashboard
+
+```mermaid
+flowchart LR
+  A[Weather · trends · cases · stock] --> B[Sentinel]
+  B --> C[Coordinator]
+  C --> D[Vernacular WhatsApp]
+  D --> E[CMO Approve]
+  E --> F[Stock actually moves]
+```
+
+Most health dashboards stop at a red number. PULSE closes the loop: **score → plan → message → decision → inventory**.
+
+| Corridor | Crisis | Surplus | CMO language |
 |---|---|---|---|
 | Maharashtra | Raigad dengue | Nashik | Marathi |
 | Odisha | Puri flood / diarrhea | Cuttack | Odia |
 | Rajasthan | Barmer malaria / heat | Jodhpur | Hindi |
 
-Other states on the national map are markers only.
+Intra-state first. Inter-state only if the destination state has no surplus district.
 
 ---
 
-## AI
+## AI — Google Gemini
 
-PULSE uses **Google Gemini** (`google-genai`) for every reasoning and writing step. Lite models are tried first (`gemini-2.5-flash-lite`, `gemini-flash-lite-latest`), then `gemini-2.5-flash` and `gemini-3.8-flash` if needed.
+Live Gemini on the hosted demo. Lite models first (`gemini-2.5-flash-lite`, `gemini-flash-lite-latest`), then `gemini-2.5-flash` / `gemini-3.8-flash`. If the key or quota fails, the UI says **MOCK** — it does not pretend Google ran.
 
-Every Gemini response is tagged **`ai_source: gemini`** or **`ai_source: mock`**. The dashboard shows that label — it never silently fakes Google AI.
-
-| Capability | What Gemini does |
+| Gemini owns | What you can verify on screen |
 |---|---|
-| Sentinel | District risk score, driver, days-to-surge, recommended action |
-| Coordinator | Intra-state transfer plan (medicine, quantity, urgency, cost, justification) |
-| Reporter | CMO WhatsApp in Marathi / Odia / Hindi + English; weekly, monthly, and post-incident briefs |
-| Copilot | Answers CMO questions using current risk, transfers, and PHC stock only |
-| Delay analysis | CMO brief for “if this transfer waits 48 hours” (stock-out numbers are calculated in code; Gemini writes the brief) |
-| Translate | English ↔ Hindi (Devanagari) for Risk / Transfers / Alerts |
+| **Sentinel** | Risk score, days-to-surge, reasoning, recommended action |
+| **Coordinator** | Transfer quantity, urgency, cost, one-line justification |
+| **Reporter** | State-language WhatsApp + English block; weekly / monthly / post-incident briefs |
+| **Copilot** | Answers using current risk, transfers, and PHC stock only |
+| **48h delay** | Code computes which PHCs hit zero; Gemini writes the CMO brief |
+| **Translate** | EN ↔ Hindi on Risk, Transfers, and Alerts |
 
-**Not Gemini:** map tiles (OpenStreetMap), leakage flags (rule-based dispensed vs footfall), and read-aloud (device speech synthesis).
+Not Gemini: OpenStreetMap, leakage ratios (dispensed vs footfall), device read-aloud.
 
 ---
 
 ## Features
 
-### Operations dashboard
+**Ops board** — National / state / district map · KPI strip · risk panel · transfer Approve / Modify / Escalate · 48h delay · alerts · Copilot · EN/हिं + speaker · Run Pipeline · Simulate Outbreak · autonomy bands (`<100` AUTO, `100–1000` APPROVE, `>1000` ESCALATE).
 
-- National → state → district **Leaflet map** with risk colouring
-- **KPI strip:** stock-out days prevented, patients served, units redistributed, warnings, leakage flagged
-- **Risk panel:** score, days-to-surge, medicines at risk, reasoning, recommended action
-- **Transfers:** Approve (moves mock stock), Modify quantity, Escalate to state
-- **If delayed 48h:** which destination PHCs hit zero stock and uncovered visits
-- **Alert feed** from Sentinel / Coordinator / Approve
-- **CMO Copilot** with suggested questions, grounded in live board state
-- **EN / हिं** view language plus speaker (read-aloud)
-- **Run Pipeline** (re-score + re-plan) and **Simulate Outbreak** (live Gemini re-score for the active state)
-- Graduated autonomy labels: AUTO / APPROVE REQUIRED / ESCALATE by quantity
+**Reports** — Weekly brief · monthly overview · post-incident · 2019 Raigad backtesting narrative · leakage audit / notify · WhatsApp phone mock.
 
-### Reports & intelligence (`/reports`)
-
-- Weekly district brief and monthly state overview
-- Post-incident analysis
-- 2019 Raigad dengue **backtesting** narrative (early-warning story)
-- **Leakage detection** with schedule-audit and notify-officer
-- **WhatsApp demo** (phone mock of CMO Approve / Modify / Escalate)
-
-### Supply chain behaviour
-
-- Prefers **intra-state** moves; inter-state only if the destination state has no surplus district
-- Approve drains donor PHCs (highest stock first) and tops up receiver PHCs (lowest stock first)
-- State-language WhatsApp draft on each transfer (Marathi, Odia, or Hindi) plus an English block
-- Demo corridors: Maharashtra (Raigad–Nashik), Odisha (Puri–Cuttack), Rajasthan (Barmer–Jodhpur)
+**On Approve** — Donor PHCs (highest stock first) are drained; receiver PHCs (lowest stock first) are topped up. That is the demo’s proof of a real supply-chain action, not a toast message.
 
 ---
 
-## Try it (judges)
+## Stack
 
-Open **[pulse-web-ahao.onrender.com](https://pulse-web-ahao.onrender.com)**. The board is already seeded — you do **not** need Simulate Outbreak.
-
-1. Maharashtra map → **Raigad** (critical) → **Transfers** → Nashik → Raigad.
-2. **If delayed 48h** on a pending card, then **Approve** (stock and KPIs update).
-3. **CMO Copilot** — tap a suggested question.
-4. **Reports** → Leakage Detection and WhatsApp Demo.
-5. Switch state to Odisha or Rajasthan for the other corridors.
-
-Gemini vs mock is labelled on the risk panel. EN / हिं toggles readable copy and read-aloud.
-
-The first load after idle can take about a minute (free hosting). After that the dashboard is live.
-
----
-
-## Architecture
-
-```
-Open-Meteo ──┐
-Search trends┤
-IDSP-style ──┼──► Sentinel (Gemini) ──► district risk
-PHC stock  ──┘                              │
-                                            ▼
-                                   Coordinator (Gemini)
-                                            │
-                          transfers + vernacular WhatsApp
-                                            │
-                              Flask API  →  Next.js dashboard
-```
-
-| Layer | Stack |
+| | |
 |---|---|
 | UI | Next.js, TypeScript, Leaflet |
 | API | Python, Flask, SQLite |
-| AI | Google Gemini (Flash Lite → Flash fallbacks); labelled mock if quota/key is missing |
-| Hosting | Render (`pulse-web` + `pulse-api`) |
+| AI | Google Gemini (`google-genai`) |
+| Signals | Open-Meteo rainfall, search-trend hints, IDSP-style demo counts |
+| Host | Render — [dashboard](https://pulse-web-ahao.onrender.com) + API |
 
 ---
 
-## Scope of this demo
+## Demo scope
 
-Illustrative PHC stock and IDSP-style counts — not a live HMIS or MoHFW feed. Sample PHCs are shown on the map, not every facility in `phc_count`. Approve is explicit (no background auto-execute timers). Backtesting is a 2019 Raigad narrative used to explain early warning, not a live model replay.
-
-Not affiliated with MoHFW, IDSP, or any state health department.
+Sample PHCs and IDSP-style counts are **illustrative**, not a live HMIS or MoHFW feed. Other states on the national map are markers only. Approve is explicit (no hidden auto-dispatch timer). Not affiliated with MoHFW, IDSP, or any state health department.
 
 ---
 
 ## Run locally
 
 ```bash
-# API — http://localhost:8000
 cd pulse/backend
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env    # optional GEMINI_API_KEY
-python3 main.py
+pip install -r requirements.txt && cp .env.example .env   # optional GEMINI_API_KEY
+python3 main.py                                           # :8000
 
-# UI — http://localhost:3000
-cd pulse/frontend
-npm install && npm run dev
+cd pulse/frontend && npm install && npm run dev           # :3000
 ```
