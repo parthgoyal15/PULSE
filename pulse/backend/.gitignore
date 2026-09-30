@@ -1,0 +1,5 @@
+data/pulse.db
+.env
+__pycache__/
+.venv/
+*.pyc

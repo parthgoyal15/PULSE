@@ -1,0 +1,36 @@
+# One-click deploy on Render: https://render.com/deploy
+# Backend must stay on a single worker — PULSE state is in-process + SQLite.
+services:
+  - type: web
+    name: pulse-api
+    runtime: python
+    plan: free
+    rootDir: pulse/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app --bind 0.0.0.0:$PORT --timeout 180 --workers 1 --threads 1
+    healthCheckPath: /status
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: ALLOW_MOCK_AGENTS
+        value: "true"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FLASK_DEBUG
+        value: "false"
+
+  - type: web
+    name: pulse-web
+    runtime: node
+    plan: free
+    rootDir: pulse/frontend
+    buildCommand: npm install && npm run build
+    startCommand: npx next start -H 0.0.0.0 -p $PORT
+    envVars:
+      - key: NODE_VERSION
+        value: "20.18.0"
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: pulse-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
