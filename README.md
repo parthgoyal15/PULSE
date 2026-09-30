@@ -8,7 +8,7 @@
 
 PHC health intelligence for India — detect a surge, move surplus stock, alert the CMO.
 
-[Live demo](https://pulse-web-ahao.onrender.com) · [Code for Community · Track 03](https://github.com/parthgoyal15/PULSE) · Smart Health & Supply Chain Resilience
+[Live demo](https://pulse-web-ahao.onrender.com) · [Pitch deck](PULSE-Pitch-Deck-AICoders.pptx) · [Code for Community · Track 03](https://github.com/parthgoyal15/PULSE) · Smart Health & Supply Chain Resilience
 
 </div>
 
