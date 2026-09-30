@@ -112,6 +112,70 @@ Not Gemini: OpenStreetMap, leakage ratios (dispensed vs footfall), device read-a
 
 ---
 
+## Architecture
+
+Two services in production: **pulse-web** (Next.js) talks to **pulse-api** (Flask). The API holds SQLite plus in-memory board state. Gemini is called from the API only — the browser never holds the key.
+
+```mermaid
+flowchart TB
+  subgraph signals [Signals]
+    W[Open-Meteo rainfall]
+    T[Symptom search trends]
+    I[IDSP-style case counts]
+    ST[Sample PHC stock]
+  end
+  subgraph gemini [Google Gemini]
+    SE[Sentinel — risk JSON]
+    CO[Coordinator — transfer plan]
+    RE[Reporter — WhatsApp and briefs]
+    CP[Copilot and 48h brief]
+    TR[Translate EN / HI]
+  end
+  subgraph runtime [Runtime]
+    API[Flask · SQLite · gunicorn]
+    UI[Next.js · Leaflet]
+  end
+  W --> SE
+  T --> SE
+  I --> SE
+  ST --> SE
+  SE --> CO
+  CO --> RE
+  SE --> API
+  CO --> API
+  RE --> API
+  CP --> API
+  TR --> API
+  UI -->|poll 15s · Approve · Copilot| API
+  API -->|days of supply after Approve| ST
+  LE[Leakage — dispensed vs footfall] --> API
+```
+
+| Layer | What runs |
+|---|---|
+| **Presentation** | Next.js dashboard (`/`) and Reports (`/reports`). Map is Leaflet / OSM. |
+| **API** | Flask routes: risk, transfers, alerts, impact, leakage, reports, `/ask`, `/translate`, `/simulate/outbreak`. |
+| **Agents** | `sentinel.py` · `coordinator.py` · `reporter.py` · `copilot.py` · `leakage.py` |
+| **Signals** | `signals/weather.py` · `trends.py` · `idsp.py` · stock on each PHC |
+| **Persistence** | SQLite (`pulse/backend/data/pulse.db` locally; instance disk on Render) |
+| **Messaging** | WhatsApp Cloud API when tokens are set; otherwise copy on the card + phone mock |
+| **Host** | Render — [dashboard](https://pulse-web-ahao.onrender.com) + [API](https://pulse-api-vqp8.onrender.com) |
+
+```
+pulse/
+├── backend/          Flask API (:8000)
+│   ├── main.py       routes, Approve stock move, demo seed
+│   ├── agents/       Sentinel, Coordinator, Reporter, Copilot, Leakage
+│   ├── signals/      weather, trends, IDSP-style
+│   ├── data/         mock PHCs, backtesting 2019
+│   └── whatsapp/     Cloud API client
+└── frontend/         Next.js (:3000)
+    ├── app/          dashboard + reports
+    └── components/   map, risk, transfers, Copilot, leakage
+```
+
+---
+
 ## Stack
 
 | | |
